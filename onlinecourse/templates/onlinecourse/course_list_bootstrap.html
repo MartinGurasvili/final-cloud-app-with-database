@@ -38,23 +38,29 @@
 
     <!-- Page content -->
     {% if course_list %}
-        <div class="container">
+        <div class="container py-3">
             <div class="card-deck">
                 {% for course in course_list %}
-                         <div class="card" style="width: 36rem;">
-                          <img class="card-img-left" src="{{MEDIA_URL}}/{{ course.image }}" width="240px" height="240px"
-                               alt="Course image">
-                          <div class="card-body bg-light">
-                              <h5 class="card-title">{{ course.name }}, <span class="text-success">
-                                  {{ course.total_enrollment}} enrolled</span></h5>
-                            <p class="card-text">{{ course.description}}</p>
-                            <form action="{% url 'onlinecourse:enroll' course.id %}" method="post">
-                                  {% csrf_token %}
-                                  <input class="btn btn-primary"  type="submit"
-                                         value="{% if course.is_enrolled %}Enter{% else %}Enroll{% endif %} ">
-                            </form>
-                          </div>
+                    <div class="card" style="width: 36rem;">
+                        <img class="card-img-left" src="{{MEDIA_URL}}/{{ course.image }}" width="240px" height="240px"
+                            alt="Course image">
+                        <div class="card-body bg-light">
+                            <h5 class="card-title">{{ course.name }}, <span class="text-success">
+                                {{ course.total_enrollment}} enrolled</span></h5>
+                        <p class="card-text">{{ course.description}}</p>
+                        <form action="{% url 'onlinecourse:enroll' course.id %}" method="post">
+                            {% csrf_token %}
+                            <input class="btn btn-primary" type="submit" name="action"
+                                    value="{% if not user.is_authenticated %}Sign for enrollement{% elif course.is_enrolled %}Enter{% else %}Enroll{% endif %}" 
+                                    {% if not user.is_authenticated %}disabled{% endif %}>
+                            {% if course.is_enrolled %}
+                                <input class="btn"  type="submit" name="action"
+                                    value="Cancel enrollement" 
+                                    {% if not user.is_authenticated %}disabled{% endif %}>
+                            {% endif %}
+                        </form>
                         </div>
+                    </div>
                 {% endfor %}
             </div>
         </div>

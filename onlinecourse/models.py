@@ -77,7 +77,7 @@ class Lesson(models.Model):
 
 
 # Enrollment model
-# <HINT> Once a user enrolled a class, an enrollment entry should be created between the user and course
+# Once a user enrolled a class, an enrollment entry should be created between the user and course
 # And we could use the enrollment to track information such as exam submissions
 class Enrollment(models.Model):
     AUDIT = 'audit'
@@ -95,40 +95,64 @@ class Enrollment(models.Model):
     rating = models.FloatField(default=5.0)
 
 
-# <HINT> Create a Question Model with:
+# Create a Question Model with:
     # Used to persist question content for a course
-    # Has a One-To-Many (or Many-To-Many if you want to reuse questions) relationship with course
+    # Has a One-To-Many relationship with course. It can be Many-To-Many, but reusing won't be much 
+    # common and it could be confusing.
     # Has a grade point for each question
-    # Has question content
-    # Other fields and methods you would like to design
-#class Question(models.Model):
-    # Foreign key to lesson
-    # question text
-    # question grade/mark
+    # Has question text
+    # A field for indicating if an answer gives points if partially correct 
+class Question(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    text = models.CharField(max_length=200, default="title")
+    mark = models.FloatField()
+    is_partially_correct_accepted = models.BooleanField()
 
-    # <HINT> A sample model method to calculate if learner get the score of the question
-    #def is_get_score(self, selected_ids):
-    #    all_answers = self.choice_set.filter(is_correct=True).count()
-    #    selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
-    #    if all_answers == selected_correct:
-    #        return True
-    #    else:
-    #        return False
+    # A method to workout question presentation type
+    @property
+    def get_question_type(self):
+        all_correct_answers = self.choice_set.filter(is_correct=True).count()
+        if (self.is_partially_correct_accepted == False) and (all_correct_answers == 1):
+            return 'radio'
+        else:
+            return 'checkbox'
 
+    # A  method to calculate the score of the question, giving the mark corresponding 
+    # to que anwered question
+    def get_score(self, selected_ids):
+        all_correct_answers = self.choice_set.filter(is_correct=True).count()
+        if (self.is_partially_correct_accepted == False) and (all_correct_answers == 1):
+            selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
+            if all_correct_answers == selected_correct:
+                return self.mark
+            else:
+                return 0
+        else:
+            total_answers = 0
+            correct_answers = 0
+            for choice in self.choice_set.all():
+                total_answers += 1
+                if ((choice.id in selected_ids) and (choice.is_correct)) or \
+                        ((choice.id not in selected_ids) and (not choice.is_correct)):  
+                    correct_answers += 1
+            return self.mark*correct_answers/total_answers
 
-#  <HINT> Create a Choice Model with:
+#  Create a Choice Model with:
     # Used to persist choice content for a question
-    # One-To-Many (or Many-To-Many if you want to reuse choices) relationship with Question
+    # One-To-Many relationship with Question. It can be Many-To-Many, but reusing won't be much 
+    # common and it could be confusing.
     # Choice content
     # Indicate if this choice of the question is a correct one or not
-    # Other fields and methods you would like to design
-# class Choice(models.Model):
+class Choice(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    text = models.CharField(max_length=200, default="title")
+    is_correct = models.BooleanField()
 
-# <HINT> The submission model
+
+# The submission model
 # One enrollment could have multiple submission
 # One submission could have multiple choices
 # One choice could belong to multiple submissions
-#class Submission(models.Model):
-#    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
-#    choices = models.ManyToManyField(Choice)
-#    Other fields and methods you would like to design
+class Submission(models.Model):
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
+    choices = models.ManyToManyField(Choice)
